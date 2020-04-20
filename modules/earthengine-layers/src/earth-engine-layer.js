@@ -1,8 +1,8 @@
 import {CompositeLayer} from '@deck.gl/core';
 import EnhancedTileLayer from './tile-layer/enhanced-tile-layer';
 import {BitmapLayer} from '@deck.gl/layers';
-import ee from '@google/earthengine';
 import EEApi from './ee-api'; // Promisify ee apis
+import ee from '@google/earthengine';
 // import {load} from '@loaders.gl/core';
 // import {ImageLoader, getImageData} from '@loaders.gl/images';
 import {loadImageBitmap} from './image-utils/image-utils';
@@ -13,9 +13,14 @@ import SphericalMercator from '@mapbox/sphericalmercator';
 const merc = new SphericalMercator({size: 256});
 
 const eeApi = new EEApi();
+// Global access token, to allow single EE API initialization if using multiple
+// layers
+let accessToken;
 
 const defaultProps = {
   /*
+  data: object,
+  token: string,
   eeObject: String || object,
   visParams: object
   */
@@ -33,13 +38,13 @@ export default class EarthEngineLayer extends CompositeLayer {
   }
 
   async _updateToken(props, oldProps, changeFlags) {
-    if (!props.token || props.token === oldProps.token) {
+    if (!props.token || props.token === accessToken) {
       return;
     }
 
     const {token} = props;
     await eeApi.initialize({token});
-    this.setState({token});
+    accessToken = token;
   }
 
   _updateEEObject(props, oldProps, changeFlags) {
