@@ -7,6 +7,7 @@ import ee from '@google/earthengine';
 import {load} from '@loaders.gl/core';
 import {ImageLoader} from '@loaders.gl/images';
 import {deepEqual, promisifyEEMethod} from './utils';
+import SphericalMercator from '@mapbox/sphericalmercator';
 
 const eeApi = new EEApi();
 // Global access token, to allow single EE API initialization if using multiple
@@ -132,16 +133,21 @@ export default class EarthEngineLayer extends CompositeLayer {
     return Promise.all([image]);
   }
 
-  async getFilmstripTileData({bbox}) {
+  async getFilmstripTileData({x, y, z}) {
     const {eeObject} = this.state;
     const {visParams} = this.props;
-    const {west, north, east, south} = bbox;
     const TILE_SIZE = 256;
+
+    const merc = new SphericalMercator();
+    const bounds = merc.bbox(x, y, z, false, '900913');
+
+    const region = ee.Geometry.Rectangle(bounds, 'EPSG:3857');
+    // ee.Geometry.Rectangle([west, south, east, north]),
 
     const filmArgs = {
       ...visParams,
       dimensions: [TILE_SIZE, TILE_SIZE],
-      region: ee.Geometry.Rectangle([west, south, east, north]),
+      region,
       crs: 'EPSG:3857'
     };
     const imageUrl = await promisifyEEMethod(eeObject, 'getFilmstripThumbURL', filmArgs);
